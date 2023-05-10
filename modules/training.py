@@ -256,6 +256,9 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
         with open(clean_path('training/datasets', f'{raw_text_file}.txt'), 'r', encoding='utf-8') as file:
             raw_text = file.read()
 
+        if len(raw_text) <= 100:
+            train_data = load_dataset(raw_text_file)
+
         tokens = shared.tokenizer.encode(raw_text)
         del raw_text  # Note: could be a gig for a large dataset, so delete redundant data as we go to be safe on RAM
         tokens = list(split_chunks(tokens, cutoff_len - overlap_len))
@@ -268,6 +271,8 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
             text_chunks = [cut_chunk_for_newline(x, newline_favor_len) for x in text_chunks]
 
         train_data = Dataset.from_list([tokenize(x) for x in text_chunks])
+
+        train_data = ""
         del text_chunks
         eval_data = None
 
