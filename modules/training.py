@@ -289,7 +289,7 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
                 text_chunks = [cut_chunk_for_newline(x, newline_favor_len) for x in text_chunks]
 
             train_data = Dataset.from_list([tokenize(x) for x in text_chunks])
-        del text_chunks
+            del text_chunks
         eval_data = None
 
     else:
