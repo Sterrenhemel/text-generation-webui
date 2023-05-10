@@ -276,20 +276,19 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
         if len(raw_text) <= 100:
             train_data = load_dataset(raw_text_file)
             train_data = train_data['train'][text_field]
-            return train_data
+        else:
+            tokens = shared.tokenizer.encode(raw_text)
+            del raw_text  # Note: could be a gig for a large dataset, so delete redundant data as we go to be safe on RAM
+            tokens = list(split_chunks(tokens, cutoff_len - overlap_len))
+            for i in range(1, len(tokens)):
+                tokens[i] = tokens[i - 1][-overlap_len:] + tokens[i]
 
-        tokens = shared.tokenizer.encode(raw_text)
-        del raw_text  # Note: could be a gig for a large dataset, so delete redundant data as we go to be safe on RAM
-        tokens = list(split_chunks(tokens, cutoff_len - overlap_len))
-        for i in range(1, len(tokens)):
-            tokens[i] = tokens[i - 1][-overlap_len:] + tokens[i]
+            text_chunks = [shared.tokenizer.decode(x) for x in tokens]
+            del tokens
+            if newline_favor_len > 0:
+                text_chunks = [cut_chunk_for_newline(x, newline_favor_len) for x in text_chunks]
 
-        text_chunks = [shared.tokenizer.decode(x) for x in tokens]
-        del tokens
-        if newline_favor_len > 0:
-            text_chunks = [cut_chunk_for_newline(x, newline_favor_len) for x in text_chunks]
-
-        train_data = Dataset.from_list([tokenize(x) for x in text_chunks])
+            train_data = Dataset.from_list([tokenize(x) for x in text_chunks])
         del text_chunks
         eval_data = None
 
