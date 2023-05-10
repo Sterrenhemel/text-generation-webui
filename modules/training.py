@@ -1,5 +1,7 @@
 import json
 import logging
+import os.path
+
 import math
 import sys
 import threading
@@ -256,8 +258,12 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
     # == Prep the dataset, format, etc ==
     if raw_text_file not in ['None', '']:
         logging.info("Loading raw text file dataset...")
-        with open(clean_path('training/datasets', f'{raw_text_file}.txt'), 'r', encoding='utf-8') as file:
-            raw_text = file.read()
+        fpath = clean_path('training/datasets', f'{raw_text_file}.txt')
+        if os.path.exists(fpath):
+            with open(fpath, 'r', encoding='utf-8') as file:
+                raw_text = file.read()
+        else:
+            raw_text = ''
 
         if len(raw_text) <= 100:
             train_data = load_dataset(raw_text_file)
