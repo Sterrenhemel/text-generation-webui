@@ -215,6 +215,7 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
     model_type = type(shared.model).__name__
 
     print(model_type)
+    print(shared.model)
 
     if model_type in MODEL_CLASSES:
         model_id = MODEL_CLASSES[model_type]
