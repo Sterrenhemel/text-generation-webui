@@ -380,6 +380,7 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
                 control.should_epoch_stop = True
                 control.should_training_stop = True
 
+    lora_model.print_trainable_parameters()
     trainer = transformers.Trainer(
         model=lora_model,
         train_dataset=train_data,
