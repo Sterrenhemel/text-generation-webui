@@ -12,7 +12,7 @@ from pathlib import Path
 import gradio as gr
 import torch
 import transformers
-from datasets import Dataset, load_dataset
+from datasets import Dataset, load_dataset, IterableDataset
 from peft import (LoraConfig, get_peft_model, prepare_model_for_int8_training,
                   set_peft_model_state_dict)
 
@@ -275,8 +275,7 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
 
         if len(raw_text) <= 100:
             train_data = load_dataset(raw_text_file)
-            train_data = Dataset.from_list([tokenize(x) for x in train_data['train'][text_field]])
-
+            train_data = Dataset.from_list(list(map(lambda x: tokenize(x), train_data['train'][text_field])))
         else:
             tokens = shared.tokenizer.encode(raw_text)
             del raw_text  # Note: could be a gig for a large dataset, so delete redundant data as we go to be safe on RAM
