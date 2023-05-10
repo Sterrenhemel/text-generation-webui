@@ -28,14 +28,22 @@ try:
         model_to_lora_modules
     from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
     MODEL_CLASSES = {v: k for k, v in MODEL_FOR_CAUSAL_LM_MAPPING_NAMES}
+    MODEL_CLASSES['ChatGLMForConditionalGeneration'] = 'chatglm'
 except:
     standard_modules = ["q_proj", "v_proj"]
-    model_to_lora_modules = {"llama": standard_modules, "opt": standard_modules, "gptj": standard_modules, "gpt_neox": ["query_key_value"]}
+    model_to_lora_modules = {
+        "llama": standard_modules,
+        "opt": standard_modules,
+        "gptj": standard_modules,
+        "gpt_neox": ["query_key_value"],
+        "chatglm": ["query_key_value"]
+    }
     MODEL_CLASSES = {
         "LlamaForCausalLM": "llama",
         "OPTForCausalLM": "opt",
         "GPTJForCausalLM": "gptj",
-        "GPTNeoXForCausalLM": "gpt_neox"
+        "GPTNeoXForCausalLM": "gpt_neox",
+        'ChatGLMForConditionalGeneration': 'chatglm'
     }
 
 WANT_INTERRUPT = False
@@ -213,9 +221,6 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
     lora_file_path = f"{shared.args.lora_dir}/{lora_file_path}"
     actual_lr = float(learning_rate)
     model_type = type(shared.model).__name__
-
-    print(model_type)
-    print(shared.model)
 
     if model_type in MODEL_CLASSES:
         model_id = MODEL_CLASSES[model_type]
