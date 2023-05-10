@@ -343,7 +343,7 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
             logging.info("Loading existing LoRA data...")
             state_dict_peft = torch.load(f"{lora_file_path}/adapter_model.bin")
             set_peft_model_state_dict(lora_model, state_dict_peft)
-    except:
+    except Exception:
         yield traceback.format_exc()
         return
 
