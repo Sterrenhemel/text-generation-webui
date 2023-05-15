@@ -59,7 +59,8 @@ def find_model_type(model_name):
     elif any((k in model_name_lower for k in ['gpt4chan', 'gpt-4chan'])):
         return 'gpt4chan'
     else:
-        config = AutoConfig.from_pretrained(Path(f'{shared.args.model_dir}/{model_name}'), trust_remote_code=shared.args.trust_remote_code)
+        config = AutoConfig.from_pretrained(Path(f'{shared.args.model_dir}/{model_name}'),
+                                            trust_remote_code=shared.args.trust_remote_code)
         # Not a "catch all", but fairly accurate
         if config.to_dict().get("is_encoder_decoder", False):
             return 'HF_seq2seq'
@@ -81,8 +82,13 @@ def load_model(model_name):
         LoaderClass = AutoModelForCausalLM
 
     # Load the model in simple 16-bit mode by default
-    if not any([shared.args.cpu, shared.args.load_in_8bit, shared.args.wbits, shared.args.auto_devices, shared.args.disk, shared.args.gpu_memory is not None, shared.args.cpu_memory is not None, shared.args.deepspeed, shared.args.flexgen, shared.model_type in ['rwkv', 'llamacpp']]):
-        model = LoaderClass.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}"), low_cpu_mem_usage=True, torch_dtype=torch.bfloat16 if shared.args.bf16 else torch.float16, trust_remote_code=trust_remote_code)
+    if not any(
+            [shared.args.cpu, shared.args.load_in_8bit, shared.args.wbits, shared.args.auto_devices, shared.args.disk,
+             shared.args.gpu_memory is not None, shared.args.cpu_memory is not None, shared.args.deepspeed,
+             shared.args.flexgen, shared.model_type in ['rwkv', 'llamacpp']]):
+        model = LoaderClass.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}"), low_cpu_mem_usage=True,
+                                            torch_dtype=torch.bfloat16 if shared.args.bf16 else torch.float16,
+                                            trust_remote_code=trust_remote_code)
         if torch.has_mps:
             device = torch.device('mps')
             model = model.to(device)
@@ -114,8 +120,10 @@ def load_model(model_name):
 
     # DeepSpeed ZeRO-3
     elif shared.args.deepspeed:
-        model = LoaderClass.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}"), torch_dtype=torch.bfloat16 if shared.args.bf16 else torch.float16)
-        model = deepspeed.initialize(model=model, config_params=ds_config, model_parameters=None, optimizer=None, lr_scheduler=None)[0]
+        model = LoaderClass.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}"),
+                                            torch_dtype=torch.bfloat16 if shared.args.bf16 else torch.float16)
+        model = deepspeed.initialize(model=model, config_params=ds_config, model_parameters=None, optimizer=None,
+                                     lr_scheduler=None)[0]
         model.module.eval()  # Inference
         logging.info(f"DeepSpeed ZeRO-3 is enabled: {is_deepspeed_zero3_enabled()}")
 
@@ -123,7 +131,9 @@ def load_model(model_name):
     elif shared.model_type == 'rwkv':
         from modules.RWKV import RWKVModel, RWKVTokenizer
 
-        model = RWKVModel.from_pretrained(Path(f'{shared.args.model_dir}/{model_name}'), dtype="fp32" if shared.args.cpu else "bf16" if shared.args.bf16 else "fp16", device="cpu" if shared.args.cpu else "cuda")
+        model = RWKVModel.from_pretrained(Path(f'{shared.args.model_dir}/{model_name}'),
+                                          dtype="fp32" if shared.args.cpu else "bf16" if shared.args.bf16 else "fp16",
+                                          device="cpu" if shared.args.cpu else "cuda")
         tokenizer = RWKVTokenizer.from_pretrained(Path(shared.args.model_dir))
 
         return model, tokenizer
@@ -147,7 +157,8 @@ def load_model(model_name):
 
         # Monkey patch
         if shared.args.monkey_patch:
-            logging.warning("Applying the monkey patch for using LoRAs in 4-bit mode. It may cause undefined behavior outside its intended scope.")
+            logging.warning(
+                "Applying the monkey patch for using LoRAs in 4-bit mode. It may cause undefined behavior outside its intended scope.")
             from modules.monkey_patch_gptq_lora import load_model_llama
 
             model, _ = load_model_llama(model_name)
@@ -162,7 +173,8 @@ def load_model(model_name):
     else:
         params = {"low_cpu_mem_usage": True}
         if not any((shared.args.cpu, torch.cuda.is_available(), torch.has_mps)):
-            logging.warning("torch.cuda.is_available() returned False. This means that no GPU has been detected. Falling back to CPU mode.")
+            logging.warning(
+                "torch.cuda.is_available() returned False. This means that no GPU has been detected. Falling back to CPU mode.")
             shared.args.cpu = True
 
         if shared.args.cpu:
@@ -171,7 +183,8 @@ def load_model(model_name):
             params["device_map"] = 'auto'
             params["trust_remote_code"] = trust_remote_code
             if shared.args.load_in_8bit and any((shared.args.auto_devices, shared.args.gpu_memory)):
-                params['quantization_config'] = BitsAndBytesConfig(load_in_8bit=True, llm_int8_enable_fp32_cpu_offload=True)
+                params['quantization_config'] = BitsAndBytesConfig(load_in_8bit=True,
+                                                                   llm_int8_enable_fp32_cpu_offload=True)
             elif shared.args.load_in_8bit:
                 params['quantization_config'] = BitsAndBytesConfig(load_in_8bit=True)
             elif shared.args.bf16:
@@ -184,7 +197,8 @@ def load_model(model_name):
                 max_cpu_memory = shared.args.cpu_memory.strip() if shared.args.cpu_memory is not None else '99GiB'
                 max_memory = {}
                 for i in range(len(memory_map)):
-                    max_memory[i] = f'{memory_map[i]}GiB' if not re.match('.*ib$', memory_map[i].lower()) else memory_map[i]
+                    max_memory[i] = f'{memory_map[i]}GiB' if not re.match('.*ib$', memory_map[i].lower()) else \
+                    memory_map[i]
 
                 max_memory['cpu'] = max_cpu_memory
                 params['max_memory'] = max_memory
@@ -195,7 +209,8 @@ def load_model(model_name):
                     suggestion -= 1000
 
                 suggestion = int(round(suggestion / 1000))
-                logging.warning(f"\033[1;32;1mAuto-assiging --gpu-memory {suggestion} for your GPU to try to prevent out-of-memory errors.\nYou can manually set other values.\033[0;37;0m")
+                logging.warning(
+                    f"\033[1;32;1mAuto-assiging --gpu-memory {suggestion} for your GPU to try to prevent out-of-memory errors.\nYou can manually set other values.\033[0;37;0m")
                 max_memory = {0: f'{suggestion}GiB', 'cpu': f'{shared.args.cpu_memory or 99}GiB'}
                 params['max_memory'] = max_memory
 
@@ -230,7 +245,8 @@ def load_model(model_name):
 
         # Try to load an universal LLaMA tokenizer
         if shared.model_type not in ['llava', 'oasst']:
-            for p in [Path(f"{shared.args.model_dir}/llama-tokenizer/"), Path(f"{shared.args.model_dir}/oobabooga_llama-tokenizer/")]:
+            for p in [Path(f"{shared.args.model_dir}/llama-tokenizer/"),
+                      Path(f"{shared.args.model_dir}/oobabooga_llama-tokenizer/")]:
                 if p.exists():
                     logging.info(f"Loading the universal LLaMA tokenizer from {p}...")
                     tokenizer = LlamaTokenizer.from_pretrained(p, clean_up_tokenization_spaces=True)
@@ -239,7 +255,8 @@ def load_model(model_name):
         # Otherwise, load it from the model folder and hope that these
         # are not outdated tokenizer files.
         if tokenizer is None:
-            tokenizer = LlamaTokenizer.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}/"), clean_up_tokenization_spaces=True)
+            tokenizer = LlamaTokenizer.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}/"),
+                                                       clean_up_tokenization_spaces=True)
             try:
                 tokenizer.eos_token_id = 2
                 tokenizer.bos_token_id = 1
@@ -247,9 +264,10 @@ def load_model(model_name):
             except:
                 pass
     else:
-        tokenizer = AutoTokenizer.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}/"), trust_remote_code=trust_remote_code)
+        tokenizer = AutoTokenizer.from_pretrained(Path(f"{shared.args.model_dir}/{model_name}/"),
+                                                  trust_remote_code=trust_remote_code)
 
-    logging.info(f"Loaded the model in {(time.time()-t0):.2f} seconds.")
+    logging.info(f"Loaded the model in {(time.time() - t0):.2f} seconds.")
     return model, tokenizer
 
 
@@ -267,6 +285,12 @@ def unload_model():
 def reload_model():
     unload_model()
     shared.model, shared.tokenizer = load_model(shared.model_name)
+
+
+def merge_model_weights():
+    merged_model = shared.model.merge_and_unload()
+    merged_name = '_'.join(shared.model_name, shared.lora_names[0])
+    merged_model.save_pretrained(f"models/{merged_name}")
 
 
 def load_soft_prompt(name):

@@ -18,6 +18,7 @@ from peft import (LoraConfig, get_peft_model, prepare_model_for_int8_training,
 
 from modules import shared, ui, utils
 from modules.evaluate import calculate_perplexity, generate_markdown_table, save_past_evaluations
+import numpy as np
 
 
 # This mapping is from a very recent commit, not yet released.
@@ -263,6 +264,17 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
             "attention_mask": result["attention_mask"][:-1],
         }
 
+    def text_clean(tokens):
+        tokens = list(split_chunks(tokens, cutoff_len - overlap_len))
+        for i in range(1, len(tokens)):
+            tokens[i] = tokens[i - 1][-overlap_len:] + tokens[i]
+
+        text_chunks = [shared.tokenizer.decode(x) for x in tokens]
+        del tokens
+        if newline_favor_len > 0:
+            text_chunks = [cut_chunk_for_newline(x, newline_favor_len) for x in text_chunks]
+        return text_chunks
+
     # == Prep the dataset, format, etc ==
     if raw_text_file not in ['None', '']:
         logging.info("Loading raw text file dataset...")
@@ -274,8 +286,15 @@ def do_train(lora_name: str, always_override: bool, save_steps: int, micro_batch
             raw_text = ''
 
         if len(raw_text) <= 100:
-            train_data = load_dataset(raw_text_file)
-            train_data = Dataset.from_list(list(map(lambda x: tokenize(x), train_data['train'][text_field])))
+            load_data = load_dataset(raw_text_file)
+            raw_text_data = load_data['train'][text_field]
+            tokens = shared.tokenizer(raw_text_data)
+            raw_text_list = map(text_clean, tokens['input_ids'])
+            del raw_text_data
+            one_raw_text_array = [element for row in raw_text_list for element in row]
+            del raw_text_list
+            train_data = Dataset.from_list([tokenize(x) for x in one_raw_text_array])
+            del one_raw_text_array
         else:
             tokens = shared.tokenizer.encode(raw_text)
             del raw_text  # Note: could be a gig for a large dataset, so delete redundant data as we go to be safe on RAM

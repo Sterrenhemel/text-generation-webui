@@ -47,7 +47,7 @@ import modules.extensions as extensions_module
 from modules import chat, shared, training, ui, utils
 from modules.html_generator import chat_html_wrapper
 from modules.LoRA import add_lora_to_model
-from modules.models import load_model, load_soft_prompt, unload_model
+from modules.models import load_model, load_soft_prompt, unload_model, merge_model_weights
 from modules.text_generation import encode, generate_reply, stop_everything_event
 
 
@@ -295,6 +295,7 @@ def create_model_menus():
                 unload = gr.Button("Unload the model")
                 reload = gr.Button("Reload the model")
                 save_settings = gr.Button("Save settings for this model")
+                merge_model = gr.Button("Merge the model")
 
     with gr.Row():
         with gr.Column():
@@ -345,6 +346,10 @@ def create_model_menus():
     unload.click(
         unload_model, None, None).then(
         lambda: "Model unloaded", None, shared.gradio['model_status'])
+
+    merge_model.click(
+        merge_model_weights,
+    )
 
     reload.click(
         unload_model, None, None).then(
