@@ -289,7 +289,7 @@ def reload_model():
 
 def merge_model_weights():
     merged_model = shared.model.merge_and_unload()
-    merged_name = '_'.join(shared.model_name, shared.lora_names[0])
+    merged_name = '_'.join([shared.model_name, shared.lora_names[0]])
     merged_model.save_pretrained(f"models/{merged_name}")
 
 
